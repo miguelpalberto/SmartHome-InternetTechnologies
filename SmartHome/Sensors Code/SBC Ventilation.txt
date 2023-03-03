@@ -1,0 +1,43 @@
+//Para ligar ou desligar Ventilacao
+//inicializações
+var url = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=/atuadores/ventilacao";
+var estado_http, valor_vent;
+var LED=0;
+var FAN=1;
+var LCD=2;
+ 
+function setup(){
+	pinMode(LED, OUTPUT);
+	pinMode(LCD, OUTPUT);
+	pinMode(FAN, OUTPUT);
+}
+ 
+function loop(){
+	
+//Obter ventilacao da API:
+	Serial.println("*** Ler ventilacao do servidor ***");
+ 	RealHTTPClient.get(url,  function(status, data) {
+		estado_http = status;
+		valor_vent = data;
+ 	});
+	
+ 
+	Serial.println("resposta(get ventilacao): " + estado_http);
+	Serial.println("Ventilacao: " + valor_vent);
+	delay(1000);
+
+ 	if (estado_http == 200){
+		if(valor_vent == 1){ // Se tiverem ligado a ventilacao
+			digitalWrite(LED, HIGH); //LED ON
+			customWrite(FAN, "1"); //FAN ON
+			customWrite(LCD, "FAN: " + "ON\n");
+		} else{ // Se tiverem desligado a ventilacao
+			digitalWrite(LED, LOW); //LED ON
+			customWrite(FAN, "0"); //FAN OFF
+			customWrite(LCD, "FAN: " + "OFF\n");
+		}
+ 	}
+ 	else{
+		Serial.println("Pedido get invalido");
+	}
+}

@@ -1,0 +1,108 @@
+//PARA ABRIR OU FECHAR PORTA E ESTORES:
+//inicializações
+var urlporta = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=porta";
+var urlestores = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=estores";
+var estado_porta, valor_porta, estado_estores, valor_estores, vento;
+var DOOR=0;
+var ESTORES=1;
+var WIND=2;
+
+//Obter hora e data atual:
+function getDateTime(){
+	var date = new Date();
+	var dateInUTC = date.toISOString();
+	var dateArr = dateInUTC.split("T");
+	var time = date.toLocaleTimeString('en-PT',{hour12:false});
+	return dateArr[0]+' '+time;
+}
+//Obter valor Vento do sensor:
+function getWind(){
+	var vento = digitalRead(WIND);
+	vento = map(vento, 0, 1023, 0, 1);
+	return vento;
+}
+
+function setup(){
+	//Definir entradas e saidas
+	pinMode(DOOR, OUTPUT);
+	pinMode(ESTORES, OUTPUT);
+	pinMode(WIND, INPUT);
+}
+ 
+function loop(){
+	
+	vento = getWind();
+	Serial.println("Vento: " + vento);
+	
+	/*if (vento == 1){
+			RealHTTPClient.post(urlapi, {'nome': 'porta' , 'valor': vento , 'hora': getDateTime() }, function(status, data){
+			Serial.println("resposta: " + status + " " + data);	})
+	}else{
+		RealHTTPClient.post(urlapi, {'nome': 'porta' , 'valor': vento , 'hora': getDateTime() }, function(status, data){
+		Serial.println("resposta: " + status + " " + data);	})
+	}*/
+	
+	//Obter valor Porta da API:
+	Serial.println("*** Ler porta do servidor ***");
+ 	RealHTTPClient.get(urlporta,  function(status, data) {
+		estado_porta = status;
+		valor_porta = data;
+		delay(1000);
+	});
+
+	Serial.println("Porta: " + valor_porta);
+	Serial.println("resposta (get porta): " + estado_porta);
+	delay(1000);
+	
+	//Obter valor dos Estores da API:
+	Serial.println("*** Ler estores do servidor ***");
+ 	RealHTTPClient.get(urlestores,  function(status, data) {
+		estado_estores = status;
+		valor_estores = data;
+		delay(1000);
+	});
+
+	Serial.println("Estores: " + valor_estores);
+	Serial.println("resposta (get estores): " + estado_estores);
+	delay(1000);
+
+ 	if (estado_porta == 200){
+ 		if(valor_porta == 1){
+			customWrite(DOOR, "1,0"); //DOOR OPEN + UNLOCK
+			//Serial.println("Porta aberta");
+
+			//RealHTTPClient.post(urlapi, {'nome': 'porta' , 'valor': porta , 'hora': getDateTime() }, function(status, data){
+			//Serial.println("resposta: " + status + " " + data);	})
+	
+		}else{
+			customWrite(DOOR, "0,0"); //DOOR CLOSE
+			//Serial.println("Porta Fechada");
+
+		}
+	}
+	else{
+		Serial.println("ERRO status code: " + estado_porta);
+	}
+
+	if (estado_estores == 200){//Se post foi bem sucedido
+ 		if(valor_estores == 2){
+			customWrite(ESTORES, "2"); // On
+
+			//RealHTTPClient.post(urlapi, {'nome': 'porta' , 'valor': porta , 'hora': getDateTime() }, function(status, data){
+			//Serial.println("resposta: " + status + " " + data);	})
+	
+		}else if (valor_estores == 1){
+			customWrite(ESTORES, "1"); // Dimm
+
+		}
+		else{
+			customWrite(ESTORES, "0"); // Dimm
+		}
+	}
+	else{
+		Serial.println("ERRO status code: " + estado_estores);//Se post nao foi bem sucedido
+	}
+
+	
+}
+

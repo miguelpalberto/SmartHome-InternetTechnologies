@@ -1,0 +1,41 @@
+//PARA CONTROLAR AR CONDICIONADO
+//inicializações
+var url = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=/atuadores/arcondicionado";
+var estado_http, valor_arcondicionado;
+var TERMO=0;
+
+ 
+function setup(){
+	pinMode(TERMO, OUTPUT);
+
+}
+ 
+function loop(){
+	
+//Obter ventilacao da API:
+	Serial.println("*** Ler Ar Condicionado do servidor ***");
+ 	RealHTTPClient.get(url,  function(status, data) {
+		estado_http = status;
+		valor_arcondicionado = data;
+ 	});
+	
+ 
+	Serial.println("resposta(get Ar Condicionado): " + estado_http);
+	Serial.println("Ar Condicionado: " + valor_arcondicionado);
+	delay(1000);
+
+ 	if (estado_http == 200){
+ 		if(valor_arcondicionado == 3){ // Se tiverem ligado o AC automatico
+			customWrite(TERMO, 3);} 
+		else if(valor_arcondicionado == 2){ // Se tiverem ligado o AC para aquecer
+			customWrite(TERMO, 2);}
+		else if(valor_arcondicionado == 1){ // Se tiverem ligado o AC para arrefecer
+			customWrite(TERMO, 1);
+		} else{ // Se tiverem desligado o AC
+			customWrite(TERMO, 0);
+		}
+ 	}
+ 	else{
+		Serial.println("Pedido get invalido");
+	}
+}

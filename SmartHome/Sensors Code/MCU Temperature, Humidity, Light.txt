@@ -1,0 +1,84 @@
+//Para obter Temperatura Humidade e Luminosidade
+var url = "http://127.0.0.1:8080/SmartHome/api/api.php"
+var TEMPERATURA = A0;
+var HUMIDADE = A1;
+var LUMINOSIDADE = 0;
+var LED = 1;
+
+//Obter data e hora:
+function getDateTime(){
+	var date = new Date();
+	var dateInUTC = date.toISOString();
+	var dateArr = dateInUTC.split("T");
+	var time = date.toLocaleTimeString('en-PT',{hour12:false});
+	return dateArr[0]+' '+time;
+}
+//Obter temperatura do sensor:
+function readTemp(){
+	var temp = analogRead(TEMPERATURA);
+	temp = ((temp/1023)*200)-100;
+	temp = temp.toFixed(2);
+	return temp;
+}
+//Obter nivel humidade do sensor:
+function readHum(){
+	//map(value, fromLow, fromHigh, toLow, toHigh)
+	var humi = analogRead(HUMIDADE);
+	humi = map(humi, 0, 1023, 0, 100); //((input/1023)*200)-100;
+	humi = humi.toFixed(2);
+	return humi;
+}
+//Obter valor luminosidade do sensor:
+function readLuminosidade(){
+	var luminosidade = digitalRead(LUMINOSIDADE);
+	luminosidade = map(luminosidade, 0, 1023, 0, 1);
+	return luminosidade;
+}
+
+function setup() {
+	//Definir entradas e saidas
+	pinMode(TEMPERATURA, INPUT);
+	pinMode(HUMIDADE, INPUT);
+	pinMode(LUMINOSIDADE, INPUT);
+	pinMode(LED, OUTPUT);
+
+}
+
+function loop(){
+	
+	var temp = readTemp();
+	var humi = readHum();
+	var luminosidade = readLuminosidade();
+
+	var valores_temp = {'nome': 'temperatura' , 'valor': temp , 'hora': getDateTime() };
+	var valores_humi = {'nome': 'humidade' , 'valor': humi , 'hora': getDateTime() };
+	var valores_luz = {'nome': 'luminosidade' , 'valor': luminosidade , 'hora': getDateTime() };
+
+	Serial.println("Luminosidade: " + luminosidade);
+	RealHTTPClient.post(url, valores_luz, function(status, data){//Realizar o post para a API
+		Serial.println("resposta (post luminosidade): " + status + " " + data);	
+	});
+	delay(2000);
+	
+
+	Serial.println("Temperatura: " + temp);
+	RealHTTPClient.post(url, valores_temp, function(status, data){//Realizar o post para a API
+		Serial.println("resposta (post temperatura): " + status + " " + data);	
+	});
+	delay(2000);
+	
+	
+	Serial.println("Humidade: " + humi);
+	RealHTTPClient.post(url, valores_humi, function(status, data){//Realizar o post para a API
+		Serial.println("resposta (post humidade): " + status + " " + data);	
+	});
+	delay(2000);
+	
+	if(temp > 27){
+		digitalWrite(LED, HIGH);
+	}else{
+		digitalWrite(LED, LOW);
+	}
+
+
+}
