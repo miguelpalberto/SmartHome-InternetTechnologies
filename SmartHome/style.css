@@ -1,0 +1,80 @@
+.container {
+    padding: 16px;
+    margin: 0 auto;
+    font-family: "Century Gothic";
+}
+
+.classeUm {
+    max-width: 550px;
+}
+
+.card {
+    padding: 0px;
+}
+
+.card-img {
+    width: 128px;
+}
+
+.navbar {
+    margin-bottom: 30px;
+}
+
+.container-fluid{
+    font-family: "Century Gothic";
+}
+/*Botão Home / Dashboard: */
+.dash{
+    font-size: large;
+    border-radius: 4px;
+    border: 2px solid #0dcaf0;
+    padding: 8px;
+    min-width: 240px;
+
+}
+.dash:hover {
+    background-color: rgb(13,202,240);
+    border-radius: 4px;
+    min-width: 240px;
+}
+
+.botao-ligar:hover{
+    background-color: white;
+}
+
+.card-header{
+    background-color: #b3ecff;    
+
+}
+.fundologin{
+    background-image: url("images/wallpaper.jpg");
+  }
+
+  .fundodois{
+    background-image: url("images/wallcasa.jpg");
+  }
+
+  .alertas-graves-texto{
+    font-weight: bold;
+    color: red;
+  }
+  .alertas-medianos-texto{
+    font-weight: bold;
+    color: #DB811B;
+  }
+  .alertas-positivos-texto{
+    color: green;
+  }
+  .titulo{
+    color: rgb(134,210,230);
+    font-family: "Century Gothic";
+    font-weight: bold;
+    font-size: 72px;
+    text-shadow: 2px 2px 2px black;
+}
+.subtitulo{
+    font-family: "Century Gothic";
+    font-weight: bold;
+    font-size: 40px;
+    text-shadow: 0px 0px 1px black;
+}

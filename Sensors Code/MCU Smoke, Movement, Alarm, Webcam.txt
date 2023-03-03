@@ -1,0 +1,206 @@
+//Para sensores de Fumo e Movimento
+var TEMPO = 500;
+var url = "http://127.0.0.1:8080/SmartHome/api/api.php";
+var urlalarme = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=/atuadores/alarme";
+var urlcamara = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=camara";
+var urlchuveiros = "http://127.0.0.1:8080/SmartHome/api/api.php?nome=/atuadores/chuveiros";
+var SMOKED = A0;
+var MOTIOND = 0;
+var CHUVEIROS = 1;
+var ALARM = 2;
+var CAMARA = 3;
+var BUZINA = 5;
+var estado_alarme, valor_alarme, estado_camara, valor_camara, estado_chuveiros, valor_chuveiros; //para os gets
+
+//Obter data e hora atual:
+function getDateTime(){
+	var date = new Date();
+	var dateInUTC = date.toISOString();
+	var dateArr = dateInUTC.split("T");
+	var time = date.toLocaleTimeString('en-PT',{hour12:false});
+	return dateArr[0]+' '+time;
+}
+
+//Obter níveis de fumo a partir do sensor:
+function readSmoke(){
+	var smoke = analogRead(SMOKED);
+	smoke = map(smoke, 0, 1023, 0, 100);
+	smoke = smoke.toFixed(2);
+	return smoke;
+}
+//Obter valores de movimento a partir do sensor:
+function readMovimento(){
+	var movimento = digitalRead(MOTIOND);
+	movimento = map(movimento, 0, 1023, 0, 1);	//conversao analogica digital
+	return movimento;
+}
+
+//Obter valores dos chuveiros a partir da API:
+function readChuveiros(){
+		Serial.println("*** Ler chuveiros do servidor ***");
+ 		RealHTTPClient.get(urlchuveiros,  function(status, data) {
+		estado_chuveiros = status;
+		valor_chuveiros = data;
+	});
+	//Imprimir no ecrã valores chuveiros:
+	Serial.println("Chuveiros: " + valor_chuveiros);
+	Serial.println("resposta (get chuveiros): " + estado_chuveiros);
+	return valor_chuveiros;
+}
+//Obter valores do alarme a partir da API:
+function readAlarme(){
+		Serial.println("*** Ler alarme do servidor ***");
+ 		RealHTTPClient.get(urlalarme,  function(status, data) {
+		estado_alarme = status;
+		valor_alarme = data;
+	});
+	//Imprimir no ecrã valores porta:
+	Serial.println("Alarme: " + valor_alarme);
+	Serial.println("resposta (get alarme): " + estado_alarme);
+	return valor_alarme;
+}
+
+
+
+
+
+
+function setup() {
+	//Definir entradas e saidas
+	pinMode(SMOKED, INPUT);
+	pinMode(MOTIOND, INPUT);
+	pinMode(ALARM, OUTPUT);
+	pinMode(CHUVEIROS, OUTPUT);
+	pinMode(CAMARA, OUTPUT);
+	pinMode(BUZINA, OUTPUT);
+}
+
+function loop(){
+	//obter variaveis dos valores dos sensores e atuadores:
+	var smoke = readSmoke();	
+	var movimento = readMovimento();
+	var chuv = readChuveiros();
+	var alarme = readAlarme();
+	
+	//variaveis uteis para futuros posts:
+	var valores_fumo = {'nome': 'fumo' , 'valor': smoke , 'hora': getDateTime() };
+	var chuveiros_ligar = {'nome': '/atuadores/chuveiros' , 'valor': 1 , 'hora': getDateTime() };
+	var chuveiros_desligar = {'nome': '/atuadores/chuveiros' , 'valor': 0 , 'hora': getDateTime() };
+	var alarme_ligar = {'nome': '/atuadores/alarme' , 'valor': 1 , 'hora': getDateTime() };
+	var alarme_desligar = {'nome': '/atuadores/alarme' , 'valor': 0 , 'hora': getDateTime() };
+	var camara_ligar = {'nome': 'camara' , 'valor': 1 , 'hora': getDateTime() };
+	var camara_desligar = {'nome': 'camara' , 'valor': 0 , 'hora': getDateTime() };
+	var valores_movimento = {'nome': 'movimento' , 'valor': movimento , 'hora': getDateTime() };
+
+
+	Serial.println("Fumo: " + smoke);
+//Enviar valores fumo para API (post):
+	RealHTTPClient.post(url, valores_fumo, function(status, data){
+	Serial.println("resposta (post fumo): " + status + " " + data);	});
+	delay(TEMPO);
+
+	Serial.println("Movimento: " + movimento);
+//Enviar valores movimento para API (post):
+	RealHTTPClient.post(url, valores_movimento, function(status, data){
+	Serial.println("resposta (post movimento): " + status + " " + data);});
+	delay(TEMPO);
+
+	
+	movimento = readMovimento();
+	if (movimento == 1) { // Se existir movimento ligar o alarme
+		digitalWrite(ALARM, HIGH);
+		customWrite(CAMARA, HIGH);
+		Serial.println( "Movimento: " + movimento + " => Alarme e camara ligados!");	
+		
+		RealHTTPClient.post(url, alarme_ligar, function(status, data){ //Enviar valor alarme para API:
+		Serial.println("resposta (post alarme): " + status + " " + data);
+		});
+		
+		RealHTTPClient.post(url, camara_ligar, function(status, data){ //Enviar valor camara para API:
+		Serial.println("resposta (post camara): " + status + " " + data);	
+		});
+		delay(TEMPO);
+	}
+	else{ // Se não existir movimento manter alarme desligado (a nao ser que utilizador envie outra ordem)
+		alarme = readAlarme();
+		if(alarme == 1){
+			digitalWrite(ALARM, HIGH);
+			
+			//RealHTTPClient.post(url, alarme_ligar, function(status, data){ //Enviar valor alarme para API:
+			//Serial.println("resposta (post alarme): " + status + " " + data);
+			//})
+			
+			//Camara - tirar foto a pedido do utilizador
+			RealHTTPClient.get(urlcamara,  function(status, data) {//Fazer pedido get
+			estado_camara = status;
+			valor_camara = data;
+			delay(TEMPO);
+			});
+			if(valor_camara==1){
+			customWrite(CAMARA, HIGH);//Tirar foto
+			}
+			else{
+			customWrite(CAMARA, LOW);//Manter camara desligada
+			}
+			delay(TEMPO);
+		}
+		else{
+			digitalWrite(ALARM, LOW);
+			Serial.println("Movimento: " + movimento);
+			
+			RealHTTPClient.post(url, alarme_desligar, function(status, data){//Enviar valor alarme para API: (confirmacao)
+			Serial.println("resposta (post alarme): " + status + " " + data);
+			});
+			
+			//Camara - tirar foto a pedido do utilizador
+			RealHTTPClient.get(urlcamara,  function(status, data) {//Fazer pedido Get
+			estado_camara = status;
+			valor_camara = data;
+			delay(TEMPO);
+			});
+			if(valor_camara==1){
+			customWrite(CAMARA, HIGH);
+			}
+			else{
+			customWrite(CAMARA, LOW);
+			}
+			delay(TEMPO);
+		}
+	}
+	
+	//Ativação (ou Desativação) dos Sprinklers/Chuveiros:
+	smoke = readSmoke();//atualizar valor do fumo do sensor
+	if (smoke > 50){
+		digitalWrite(CHUVEIROS, HIGH);//ligar
+		digitalWrite(BUZINA, HIGH);
+		
+		Serial.println("CHUVEIROS LIGADOS");
+		RealHTTPClient.post(url, chuveiros_ligar, function(status, data){
+		Serial.println("resposta: " + status + " " + data);
+		});
+		delay(TEMPO);
+	}
+	else{// Se não existir fumo manter chuveiros (e buzina) ligados (a nao ser que utilizador envie outra ordem)
+		chuv = readChuveiros();//atualizar valor dos chuveiros
+		if(chuv == 1){//Permitir ligar manualmente chuveiros (e buzina)
+			digitalWrite(CHUVEIROS, HIGH);//ligar/manter ligado
+			digitalWrite(BUZINA, HIGH);
+		
+			//Serial.println("CHUVEIROS LIGADOS");
+			//RealHTTPClient.post(url, chuveiros_ligar, function(status, data){
+			//Serial.println("resposta: " + status + " " + data);
+			//});
+			delay(TEMPO);
+		}
+		else{//Permitir desligar manualmente (mas so se nao houver fumo)
+			digitalWrite(CHUVEIROS, LOW);//desligar
+			digitalWrite(BUZINA, LOW);
+			
+			Serial.println("CHUVEIROS DESLIGADOS");
+			RealHTTPClient.post(url, chuveiros_desligar, function(status, data){//Enviar valor alarme para API: (confirmacao)
+			Serial.println("resposta: " + status + " " + data);
+			});
+			delay(TEMPO);
+		}
+	}
+}
